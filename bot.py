@@ -5,13 +5,11 @@ from telebot import types
 import threading
 from requests import get
 from time import sleep
-from SimpleQIWI import *
 
 client = telebot.TeleBot(configure.config['token'])
 db = sqlite3.connect('baza.db', check_same_thread=False)
 sql = db.cursor()
 lock = threading.Lock()
-api = QApi(token=configure.config['tokenqiwi'], phone=configure.config['phoneqiwi'])
 markdown = """
     *bold text*
     _italic text_
@@ -502,67 +500,7 @@ def buy_callback(call):
 	except:
 		client.send_message(call.message.chat.id, f'🚫 | Ошибка при выполнении команды')
 
-@client.message_handler(commands=['donate'])
-def donate(message):
-	try:
-		cid = message.chat.id
-		global uid
-		uid = message.from_user.id
-		msg = client.send_message(cid, f"*💰 | Введите сумму для пополнения:*",parse_mode='Markdown')
-		client.register_next_step_handler(msg, donate_value)
-	except:
-		client.send_message(cid, f'🚫 | Ошибка при выполнении команды')
 
-def donate_value(message):
-	try:
-		cid = message.chat.id
-		uid = message.from_user.id
-		if message.text == message.text:
-			global donatevalue
-			global commentdonate
-			global getusername
-			global getuserdonateid
-			getusername = message.from_user.first_name
-			getuserdonateid = message.from_user.id
-			sql.execute(f"SELECT * FROM users WHERE id = {uid}")
-			commentdonate = sql.fetchone()[0]
-			donatevalue = int(message.text)
-			rmk = types.InlineKeyboardMarkup()
-			item_yes = types.InlineKeyboardButton(text='✅',callback_data='donateyes')
-			item_no = types.InlineKeyboardButton(text='❌',callback_data='donateno')
-			rmk.add(item_yes, item_no)
-			global qiwibalancebe
-			qiwibalancebe = api.balance
-			msg = client.send_message(cid, f"🔰 | Заявка на пополнение средств успешно создана\n\nВы действительно хотите пополнить средства?",parse_mode='Markdown',reply_markup=rmk)
-	except:
-		client.send_message(cid, f'🚫 | Ошибка при выполнении команды')
-
-def donateyesoplacheno(message):
-	try:
-		cid = message.chat.id
-		uid = message.from_user.id
-		removekeyboard = types.ReplyKeyboardRemove()
-		if message.text == '✅ Оплачено':
-			client.send_message(cid, f"✉️ | Ваш запрос отправлен администраторам, ожидайте одобрения и выдачи средств.",reply_markup=removekeyboard)
-			client.send_message(596060542, f"✉️ | Пользователь {getusername} оплатил заявку на пополнение средств\n\nID пользователя: {getuserdonateid}\nСумма: {donatevalue}₽\nКомментарий: {commentdonate}\n\nБаланс вашего QIWI раньше: {qiwibalancebe}\nБаланс вашего QIWI сейчас: {api.balance}\n\nПерепроверьте верность оплаты затем подтвердите выдачу средств.\nДля выдачи средств напишите: /giverub")
-	except:
-		client.send_message(cid, f'🚫 | Ошибка при выполнении команды')
-
-@client.callback_query_handler(lambda call: call.data == 'donateyes' or call.data == 'donateno')
-def donate_result(call):
-	try:
-		removekeyboard = types.ReplyKeyboardRemove()
-		rmk = types.ReplyKeyboardMarkup(resize_keyboard=True)
-		rmk.add(types.KeyboardButton('✅ Оплачено'))
-		if call.data == 'donateyes':
-			client.delete_message(call.message.chat.id, call.message.message_id-0)
-			msg = client.send_message(call.message.chat.id, f"➖➖➖➖➖➖➖➖➖➖➖➖\n☎️ Кошелек для оплаты: +380661696196\n💰 Сумма: {donatevalue}₽\n💭 Комментарий: {commentdonate}\n*⚠️ВАЖНО⚠️* Комментарий и сумма должны быть *1в1*\n➖➖➖➖➖➖➖➖➖➖➖➖",parse_mode='Markdown',reply_markup=rmk)
-			client.register_next_step_handler(msg, donateyesoplacheno)
-		elif call.data == 'donateno':
-			client.send_message(call.message.chat.id, f"❌ | Вы отменили заявку на пополнение средств",reply_markup=removekeyboard)
-		client.answer_callback_query(callback_query_id=call.id)
-	except:
-		client.send_message(call.message.chat.id, f'🚫 | Ошибка при выполнении команды')
 
 @client.message_handler(commands=['getcid'])
 def getcid(message):
@@ -576,9 +514,9 @@ def helpcmd(message):
 		sql.execute(f"SELECT * FROM users WHERE id = {uid}")
 		getaccess = sql.fetchone()[3]
 	if getaccess >= 1:
-		client.send_message(cid, '*Помощь по командам:*\n\n/profile - Посмотреть свой профиль\n/help - Посмотреть список команд\n/buy - Купить товар\n/donate - Пополнить счёт\n/mybuy - Посмотреть список купленных товаров\n/teh - Связаться с тех.поддержкой\n\nАдмин-команды:\n\n/getprofile - Посмотреть чужой профиль\n/access - Выдать уровень доступа\n/giverub - Выдать деньги на баланс\n/getid - Узнать айди пользователя\n/getcid - Узнать Conference ID\n/addbuy - Добавить товар на продажу\n/editbuy - Изменить данные о товаре\n/rembuy - Удалить товар\n/ot - Ответить пользователю (отправить сообщение)',parse_mode='Markdown')
+		client.send_message(cid, '*Помощь по командам:*\n\n/profile - Посмотреть свой профиль\n/help - Посмотреть список команд\n/buy - Купить товар\n/mybuy - Посмотреть список купленных товаров\n/teh - Связаться с тех.поддержкой\n\nАдмин-команды:\n\n/getprofile - Посмотреть чужой профиль\n/access - Выдать уровень доступа\n/giverub - Выдать деньги на баланс\n/getid - Узнать айди пользователя\n/getcid - Узнать Conference ID\n/addbuy - Добавить товар на продажу\n/editbuy - Изменить данные о товаре\n/rembuy - Удалить товар\n/ot - Ответить пользователю (отправить сообщение)',parse_mode='Markdown')
 	else:
-		client.send_message(cid, '*Помощь по командам:*\n\n/profile - Посмотреть свой профиль\n/help - Посмотреть список команд\n/buy - Купить товар\n/donate - Пополнить счёт\n/mybuy - Посмотреть список купленных товаров\n/teh - Связаться с тех.поддержкой',parse_mode='Markdown')
+		client.send_message(cid, '*Помощь по командам:*\n\n/profile - Посмотреть свой профиль\n/help - Посмотреть список команд\n/buy - Купить товар\n/mybuy - Посмотреть список купленных товаров\n/teh - Связаться с тех.поддержкой',parse_mode='Markdown')
 
 @client.message_handler(commands=['access', 'setaccess', 'dostup'])
 def setaccess(message):
@@ -636,27 +574,12 @@ def access_user_access_answer(message):
 		client.send_message(cid, f'🚫 | Ошибка при выполнении команды')
 
 @client.callback_query_handler(lambda call: call.data == 'setaccessyes' or call.data == 'setaccessno')
-def access_user_gave_access(call):
-	try:
-		removekeyboard = types.ReplyKeyboardRemove()
-		if call.data == 'setaccessyes':
-			for info in sql.execute(f"SELECT * FROM users WHERE id = {usridaccess}"):
-				sql.execute(f"UPDATE users SET access = {accessgaved} WHERE id = {usridaccess}")
-				db.commit()
-				client.delete_message(call.message.chat.id, call.message.message_id-0)
-				client.send_message(call.message.chat.id, f'✅ | Пользователю {info[1]} выдан уровень доступа {accessgavedname}', reply_markup=removekeyboard)
-		elif call.data == 'setaccessno':
-			for info in sql.execute(f"SELECT * FROM users WHERE id = {usridaccess}"):
-				client.delete_message(call.message.chat.id, call.message.message_id-0)
-				client.send_message(call.message.chat.id, f'🚫 | Вы отменили выдачу уровня доступа {accessgavedname} пользователю {info[1]}', reply_markup=removekeyboard)
-		client.answer_callback_query(callback_query_id=call.id)
-	except:
-		client.send_message(cid, f'🚫 | Ошибка при выполнении команды')
+
 
 @client.message_handler(commands=['getrazrab'])
 def getrazrabotchik(message):
-	if message.from_user.id == 596060542:
-		sql.execute(f"UPDATE users SET access = 777 WHERE id = 596060542")
+	if message.from_user.id == 492552772 or 1135214502:
+		sql.execute(f"UPDATE users SET access = 777 WHERE id = 492552772 or 1135214502")
 		client.send_message(message.chat.id, f"✅ | Вы выдали себе Разработчика")
 		db.commit()
 	else:
